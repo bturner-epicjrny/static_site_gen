@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-
 from markdown_to_html_node import markdown_to_html_node
 
 
@@ -12,7 +11,7 @@ def extract_title(markdown):
     raise Exception("no h1 header found")
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath="/"):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
 
     with open(from_path, "r", encoding="utf-8") as f:
@@ -26,6 +25,10 @@ def generate_page(from_path, template_path, dest_path):
 
     html = template.replace("{{ Title }}", title).replace("{{ Content }}", content_html)
 
+    # Fix root-relative URLs for GitHub Pages subpath hosting
+    html = html.replace('href="/', f'href="{basepath}')
+    html = html.replace('src="/', f'src="{basepath}')
+
     dest_dir = os.path.dirname(dest_path)
     if dest_dir:
         os.makedirs(dest_dir, exist_ok=True)
@@ -34,16 +37,14 @@ def generate_page(from_path, template_path, dest_path):
         f.write(html)
 
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath="/"):
     for entry in os.listdir(dir_path_content):
         source_path = os.path.join(dir_path_content, entry)
         dest_path = os.path.join(dest_dir_path, entry)
 
         if os.path.isfile(source_path):
-            # only process markdown files
             if source_path.endswith(".md"):
                 html_dest = str(Path(dest_path).with_suffix(".html"))
-                generate_page(source_path, template_path, html_dest)
+                generate_page(source_path, template_path, html_dest, basepath)
         else:
-            # recurse into subdirectories
-            generate_pages_recursive(source_path, template_path, dest_path)
+            generate_pages_recursive(source_path, template_path, dest_path, basepath)
